@@ -1,5 +1,6 @@
 "use client";
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import dados from '@/data/manutcontrol_dados.json';
 import Sidebar from '@/components/sidebar';
 import Header from '@/components/header';
@@ -9,63 +10,88 @@ import WorkOrderList from '@/components/workOrderList';
 import DailySchedule from '@/components/dailySchedule';
 import CriticalEquipment from '@/components/criticalEquipment';
 
-// --- Preparação dos dados (roda uma vez, fora do componente) ---
-
-// Dicionário id -> equipamento, para achar o equipamento de cada ordem
+// --- Processamento inicial de dados ---
 const equipamentosPorId = new Map(dados.equipamentos.map((e) => [e.id, e]));
 
 function formatarData(iso) {
+  if (!iso) return '';
   const [ano, mes, dia] = iso.split('-');
   return `${dia}/${mes}/${ano}`;
 }
 
-// Cada ordem ganha o objeto do equipamento e a data já formatada
 const ordens = dados.ordensServico.map((ordem) => ({
   ...ordem,
   equipamento: equipamentosPorId.get(ordem.equipamentoId),
   vencimentoFormatado: formatarData(ordem.vencimento),
 }));
 
-// Indicadores calculados a partir dos arrays (nunca escritos na mão)
 const totalAbertas = ordens.filter((o) => o.status === 'aberta').length;
 const totalVencidas = ordens.filter((o) => o.status === 'vencida').length;
 const totalParados = dados.equipamentos.filter((e) => e.status === 'parado').length;
 
-// Agenda do dia: só ordens com horário, ordenadas pelo horário
 const agenda = ordens
   .filter((o) => o.horarioAgendado)
   .sort((a, b) => a.horarioAgendado.localeCompare(b.horarioAgendado));
 
-// Equipamentos críticos: tudo que não está operando
 const equipamentosCriticos = dados.equipamentos.filter((e) => e.status !== 'operando');
 
 export default function DashboardPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
+  // Estados centralizados dos filtros
   const [busca, setBusca] = useState('');
+  const [status, setStatus] = useState('');
+  const [prioridade, setPrioridade] = useState('');
 
-  // Busca por código, descrição, equipamento ou técnico
+  useEffect(() => {
+    if (window.innerWidth >= 768) {
+      setIsSidebarOpen(true);
+    }
+  }, []);
+
+  // Filtragem dinâmica que combina Busca Textual + Status + Prioridade
   const termo = busca.trim().toLowerCase();
-  const ordensFiltradas = ordens.filter((ordem) =>
-    [ordem.codigo, ordem.descricao, ordem.equipamento.nome, ordem.tecnico].some((campo) =>
-      campo.toLowerCase().includes(termo)
-    )
-  );
+  const ordensFiltradas = ordens.filter((ordem) => {
+    const matchBusca = !termo || [
+      ordem.codigo,
+      ordem.os,
+      ordem.descricao,
+      ordem.equipamento?.nome,
+      ordem.equipamento?.codigo,
+      ordem.tecnico,
+    ].some((campo) => campo?.toLowerCase().includes(termo));
 
-  const primeiroNome = dados.usuario.split(' ')[0];
+    const matchStatus = !status || ordem.status?.toLowerCase() === status.toLowerCase();
+    const matchPrioridade = !prioridade || ordem.prioridade?.toLowerCase() === prioridade.toLowerCase();
+
+    return matchBusca && matchStatus && matchPrioridade;
+  });
+
+  const primeiroNome = dados.usuario ? dados.usuario.split(' ')[0] : 'Usuário';
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-800">
+      <Sidebar 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)} 
+      />
 
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header onOpenMenu={() => setIsSidebarOpen(true)} usuario={dados.usuario} />
+      <div className="flex flex-1 flex-col min-w-0">
+        <Header 
+          onOpenMenu={() => setIsSidebarOpen((prev) => !prev)} 
+          usuario={dados.usuario} 
+        />
 
-        <main className="p-4 md:p-6 flex flex-col gap-6">
-          {/* Saudação + ação principal */}
+        <main className="flex flex-col gap-6 p-4 md:p-6">
+          {/* Saudação */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">Bom dia, {primeiroNome}</h1>
-              <p className="text-sm text-slate-500">Veja o que precisa de atenção hoje</p>
+              <h1 className="text-2xl font-bold text-slate-900">
+                Bom dia, {primeiroNome}
+              </h1>
+              <p className="text-sm text-slate-500">
+                Veja o que precisa de atenção hoje
+              </p>
             </div>
             <button
               type="button"
@@ -75,19 +101,44 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          {/* Indicadores */}
+          {/* Cards Indicadores */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <IndicatorCard valor={totalAbertas} descricao="ordens abertas" corDoPonto="bg-blue-600" />
-            <IndicatorCard valor={totalVencidas} descricao="vencidas" corDoPonto="bg-red-600" />
-            <IndicatorCard valor={totalParados} descricao="equipamentos parados" corDoPonto="bg-amber-500" />
+            <IndicatorCard 
+              valor={totalAbertas} 
+              descricao="ordens abertas" 
+              corDoPonto="bg-blue-600" 
+            />
+            <IndicatorCard 
+              valor={totalVencidas} 
+              descricao="vencidas" 
+              corDoPonto="bg-red-600" 
+            />
+            <IndicatorCard 
+              valor={totalParados} 
+              descricao="equipamentos parados" 
+              corDoPonto="bg-amber-500" 
+            />
           </div>
 
-          {/* Conteúdo principal */}
+          {/* Seção Principal */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <section className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 lg:col-span-2">
-              <h2 className="text-base font-semibold text-slate-900">Ordens que exigem atenção</h2>
-              <SearchFilters valor={busca} onChange={setBusca} />
-              <WorkOrderList ordens={ordensFiltradas} />
+              <h2 className="text-base font-semibold text-slate-900">
+                Ordens que exigem atenção
+              </h2>
+
+              <SearchFilters 
+                valor={busca} 
+                onChange={setBusca}
+                status={status}
+                onStatusChange={setStatus}
+                prioridade={prioridade}
+                onPrioridadeChange={setPrioridade}
+              />
+
+              <div className="w-full overflow-x-auto">
+                <WorkOrderList ordens={ordensFiltradas} />
+              </div>
             </section>
 
             <div className="flex flex-col gap-6">

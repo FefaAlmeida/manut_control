@@ -9,6 +9,7 @@ import SearchFilters from '@/components/searchFilters';
 import WorkOrderList from '@/components/workOrderList';
 import DailySchedule from '@/components/dailySchedule';
 import CriticalEquipment from '@/components/criticalEquipment';
+import CheckBox from '@/components/checkBox';
 
 // --- Processamento inicial de dados ---
 const equipamentosPorId = new Map(dados.equipamentos.map((e) => [e.id, e]));
@@ -19,26 +20,19 @@ function formatarData(iso) {
   return `${dia}/${mes}/${ano}`;
 }
 
-const ordens = dados.ordensServico.map((ordem) => ({
+const ordensIniciais = dados.ordensServico.map((ordem) => ({
   ...ordem,
   equipamento: equipamentosPorId.get(ordem.equipamentoId),
   vencimentoFormatado: formatarData(ordem.vencimento),
 }));
 
-const totalAbertas = ordens.filter((o) => o.status === 'aberta').length;
-const totalVencidas = ordens.filter((o) => o.status === 'vencida').length;
-const totalParados = dados.equipamentos.filter((e) => e.status === 'parado').length;
-
-const agenda = ordens
-  .filter((o) => o.horarioAgendado)
-  .sort((a, b) => a.horarioAgendado.localeCompare(b.horarioAgendado));
-
-const equipamentosCriticos = dados.equipamentos.filter((e) => e.status !== 'operando');
-
 export default function DashboardPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
-  // Estados centralizados dos filtros
+  // Estado principal reativo das ordens
+  const [listaOrdens, setListaOrdens] = useState(ordensIniciais);
+
+  // Estados dos filtros
   const [busca, setBusca] = useState('');
   const [status, setStatus] = useState('');
   const [prioridade, setPrioridade] = useState('');
@@ -49,9 +43,40 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // Filtragem dinâmica que combina Busca Textual + Status + Prioridade
+  // 1. Alterar status via Select (Tabela Principal)
+  const handleMudarStatus = (id, novoStatus) => {
+    setListaOrdens((prevOrdens) =>
+      prevOrdens.map((ordem) =>
+        ordem.id === id ? { ...ordem, status: novoStatus } : ordem
+      )
+    );
+  };
+
+  // 2. Alternar CheckBox (Cards de Ação Rápida com Undo/Restauração)
+  const handleConcluirOrdem = (id) => {
+    setListaOrdens((prevOrdens) =>
+      prevOrdens.map((ordem) => {
+        if (ordem.id !== id) return ordem;
+
+        if (ordem.status === 'concluida') {
+          return {
+            ...ordem,
+            status: ordem.statusAnterior || 'aberta',
+          };
+        }
+
+        return {
+          ...ordem,
+          statusAnterior: ordem.status,
+          status: 'concluida',
+        };
+      })
+    );
+  };
+
+  // Filtragem dinâmica
   const termo = busca.trim().toLowerCase();
-  const ordensFiltradas = ordens.filter((ordem) => {
+  const ordensFiltradas = listaOrdens.filter((ordem) => {
     const matchBusca = !termo || [
       ordem.codigo,
       ordem.os,
@@ -67,6 +92,16 @@ export default function DashboardPage() {
     return matchBusca && matchStatus && matchPrioridade;
   });
 
+  // Indicadores calculados dinamicamente
+  const totalAbertas = listaOrdens.filter((o) => o.status === 'aberta').length;
+  const totalVencidas = listaOrdens.filter((o) => o.status === 'vencida').length;
+  const totalParados = dados.equipamentos.filter((e) => e.status === 'parado').length;
+
+  const agenda = listaOrdens
+    .filter((o) => o.horarioAgendado)
+    .sort((a, b) => a.horarioAgendado.localeCompare(b.horarioAgendado));
+
+  const equipamentosCriticos = dados.equipamentos.filter((e) => e.status !== 'operando');
   const primeiroNome = dados.usuario ? dados.usuario.split(' ')[0] : 'Usuário';
 
   return (
@@ -83,7 +118,7 @@ export default function DashboardPage() {
         />
 
         <main className="flex flex-col gap-6 p-4 md:p-6">
-          {/* Saudação */}
+          {/* Cabeçalho / Saudação */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-2xl font-bold text-slate-900">
@@ -120,31 +155,67 @@ export default function DashboardPage() {
             />
           </div>
 
-          {/* Seção Principal */}
+          {/* Grid Geral do Dashboard */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <section className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 lg:col-span-2">
-              <h2 className="text-base font-semibold text-slate-900">
-                Ordens que exigem atenção
-              </h2>
 
-              <SearchFilters 
-                valor={busca} 
-                onChange={setBusca}
-                status={status}
-                onStatusChange={setStatus}
-                prioridade={prioridade}
-                onPrioridadeChange={setPrioridade}
-              />
+            {/* Coluna Principal (Esquerda): Tabela + Cards Empilhados */}
+            <div className="flex flex-col gap-6 lg:col-span-2">
+              
+              {/* Tabela de Ordens */}
+              <section className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <h2 className="text-base font-semibold text-slate-900">
+                  Ordens que exigem atenção
+                </h2>
 
-              <div className="w-full overflow-x-auto">
-                <WorkOrderList ordens={ordensFiltradas} />
+                <SearchFilters 
+                  valor={busca} 
+                  onChange={setBusca}
+                  status={status}
+                  onStatusChange={setStatus}
+                  prioridade={prioridade}
+                  onPrioridadeChange={setPrioridade}
+                />
+
+                <div className="w-full overflow-x-auto">
+                  <WorkOrderList 
+                    ordens={ordensFiltradas} 
+                    onMudarStatus={handleMudarStatus} 
+                  />
+                </div>
+              </section>
+
+              {/* Cards de Tarefas Empilhados Responsivos (1 por linha) */}
+              <div className="grid grid-cols-1 gap-4 w-full xl:grid-cols-3">
+                <CheckBox 
+                  ordens={listaOrdens} 
+                  onToggleOrdem={handleConcluirOrdem}
+                  prioridade="urgente" 
+                  titulo="Tarefas Urgentes" 
+                />
+
+                <CheckBox 
+                  ordens={listaOrdens} 
+                  onToggleOrdem={handleConcluirOrdem}
+                  prioridade="alta" 
+                  titulo="Alta Prioridade" 
+                />
+
+                <CheckBox 
+                  ordens={listaOrdens} 
+                  onToggleOrdem={handleConcluirOrdem}
+                  prioridade={["media", "baixa"]} 
+                  titulo="Outras Tarefas" 
+                />
               </div>
-            </section>
 
+            </div>
+
+            {/* Coluna Lateral (Direita): Agenda e Equipamentos Críticos */}
             <div className="flex flex-col gap-6">
               <DailySchedule itens={agenda} />
               <CriticalEquipment equipamentos={equipamentosCriticos} />
             </div>
+
           </div>
         </main>
       </div>

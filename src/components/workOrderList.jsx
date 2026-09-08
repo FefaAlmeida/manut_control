@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import WorkOrderRow from '@/components/workOrderRow';
 
-export default function WorkOrderList({ ordens = [] }) {
+export default function WorkOrderList({ ordens = [], onMudarStatus }) { // 1. Prop adicionada
   const [paginaAtual, setPaginaAtual] = useState(1);
   const ITENS_POR_PAGINA = 9; 
 
@@ -17,7 +17,6 @@ export default function WorkOrderList({ ordens = [] }) {
     );
   }
 
-  // Cálculos da Paginação
   const totalItens = ordens.length;
   const totalPaginas = Math.ceil(totalItens / ITENS_POR_PAGINA);
   const inicio = (paginaAtual - 1) * ITENS_POR_PAGINA;
@@ -28,7 +27,6 @@ export default function WorkOrderList({ ordens = [] }) {
 
   return (
     <div className="w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      {/* Tabela com Scroll Horizontal se necessário */}
       <div className="w-full overflow-x-auto">
         <table className="w-full min-w-[850px] border-collapse text-left text-sm">
           <thead>
@@ -44,13 +42,16 @@ export default function WorkOrderList({ ordens = [] }) {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {ordensPaginadas.map((ordem) => (
-              <WorkOrderRow key={ordem.id} ordem={ordem} />
+              <WorkOrderRow 
+                key={ordem.id} 
+                ordem={ordem} 
+                onMudarStatus={onMudarStatus} // 2. Repassa a função para a linha
+              />
             ))}
           </tbody>
         </table>
       </div>
 
-      {/* Barra de Paginação Integrada ao Rodapé */}
       <div className="flex flex-col items-center justify-between gap-4 border-t border-slate-200 bg-white px-6 py-3 text-xs text-slate-500 sm:flex-row">
         <div>
           Exibindo <span className="font-semibold text-slate-700">{itemInicial}</span> a{' '}

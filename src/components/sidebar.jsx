@@ -40,7 +40,7 @@ export default function Sidebar({ isOpen, onClose }) {
                 onClick={handleItemClick} 
                 className="flex items-center gap-3 p-4 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-r-lg cursor-pointer transition-all"
               >
-                <img src="/home.png" alt="Visão geral" className="w-6 h-6 object-contain shrink-0" />
+                <img src="/homeCerta.png" alt="Visão geral" className="w-6 h-6 object-contain shrink-0" />
                 <span className="font-medium">Visão geral</span>
               </div>
 
@@ -48,7 +48,7 @@ export default function Sidebar({ isOpen, onClose }) {
                 onClick={handleItemClick} 
                 className="flex items-center gap-3 p-4 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-r-lg cursor-pointer transition-all"
               >
-                <img src="/prancheta.png" alt="Ordens de serviço" className="w-6 h-6 object-contain shrink-0" />
+                <img src="/pranchetaCerta.png" alt="Ordens de serviço" className="w-6 h-6 object-contain shrink-0" />
                 <span className="font-medium">Ordens de serviço</span>
               </div>
 
@@ -56,7 +56,7 @@ export default function Sidebar({ isOpen, onClose }) {
                 onClick={handleItemClick} 
                 className="flex items-center gap-3 p-4 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-r-lg cursor-pointer transition-all"
               >
-                <img src="/configuracoes.png" alt="Equipamentos" className="w-6 h-6 object-contain shrink-0" />
+                <img src="/settings.png" alt="Equipamentos" className="w-6 h-6 object-contain shrink-0" />
                 <span className="font-medium">Equipamentos</span>
               </div>
 
@@ -64,7 +64,7 @@ export default function Sidebar({ isOpen, onClose }) {
                 onClick={handleItemClick} 
                 className="flex items-center gap-3 p-4 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-r-lg cursor-pointer transition-all"
               >
-                <img src="/pessoas.png" alt="Técnicos" className="w-6 h-6 object-contain shrink-0" />
+                <img src="/people.png" alt="Técnicos" className="w-6 h-6 object-contain shrink-0" />
                 <span className="font-medium">Técnicos</span>
               </div>
             </nav>
@@ -74,7 +74,7 @@ export default function Sidebar({ isOpen, onClose }) {
             onClick={handleItemClick} 
             className="flex items-center gap-3 p-4 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-r-lg cursor-pointer transition-all"
           >
-            <img src="/sair.png" alt="Sair" className="w-6 h-6 object-contain shrink-0" />
+            <img src="/logout.png" alt="Sair" className="w-6 h-6 object-contain shrink-0" />
             <span className="font-medium">Sair</span>
           </div>
         </div>

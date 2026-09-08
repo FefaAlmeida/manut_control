@@ -1,6 +1,6 @@
 // Dicionário com os caminhos das imagens
 const imagens = {
-  'ordens abertas': '/prancheta.png',
+  'ordens abertas': '/check.png',
   'vencidas': '/relogio.png',
   'equipamentos parados': '/pause.png',
 };
